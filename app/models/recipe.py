@@ -1,9 +1,6 @@
-from sqlalchemy.orm import Mapped
-from sqlalchemy.orm import mapped_column
-from sqlalchemy import String, Text, Integer, CheckConstraint
-
+from sqlalchemy import String, Text, Integer, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
-
 
 class Recipe(Base):
     __tablename__ = "recipes"
@@ -14,11 +11,16 @@ class Recipe(Base):
     cooking_time: Mapped[int] = mapped_column(Integer)
     difficulty: Mapped[int] = mapped_column(Integer, default=1)
 
-    # __table_args__ = (
-    #     CheckConstraint(
-    #         "difficulty >= 1 AND difficulty <= 5", name="check_difficulty_range"
-    #     ),
-    # )
+    cuisine_id: Mapped[int] = mapped_column(ForeignKey("cuisines.id"))
+    cuisine: Mapped["Cuisine"] = relationship(back_populates="recipes")
+
+    allergens: Mapped[list["Allergen"]] = relationship(
+        secondary="recipe_allergens"
+    )
+
+    recipe_ingredients: Mapped[list["RecipeIngredient"]] = relationship(
+        back_populates="recipe"
+    )
 
     def __repr__(self):
         return f"Recipe(id={self.id}, title={self.title})"

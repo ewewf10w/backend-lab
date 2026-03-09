@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     run: RunConfig = RunConfig()
     url: UrlPrefix = UrlPrefix()
     db: DatabaseConfig = DatabaseConfig(
-        url="sqlite+aiosqlite:///./test.sqlite",
+        url="sqlite+aiosqlite:///./recipes_v2.sqlite",
         echo=True,
         future=True
     )
