@@ -15,10 +15,12 @@ class Recipe(Base):
     cuisine: Mapped["Cuisine"] = relationship(back_populates="recipes")
 
     allergens: Mapped[list["Allergen"]] = relationship(
-        secondary="recipe_allergens"
+        secondary="recipe_allergens",
+        back_populates="recipes"
     )
 
     recipe_ingredients: Mapped[list["RecipeIngredient"]] = relationship(
+        secondary="recipe_ingredients",
         back_populates="recipe"
     )
 
