@@ -5,8 +5,8 @@ from sqlalchemy import select
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import selectinload, joinedload
 
-from models import db_helper, Ingredient, RecipeIngredient
-from .recipes import RecipeRead
+from models import db_helper, Ingredient, RecipeIngredient, Recipe
+from .schemas import RecipeRead
 
 router = APIRouter(
     tags=["Ingredients"],
@@ -62,27 +62,29 @@ async def delete_ingredient(ingredient_id: int, session: Annotated[AsyncSession,
     await session.delete(ingredient)
     await session.commit()
 
-@router.get("/{ingredient_id}/recipes/", response_model=list[RecipeRead])
+@router.get("/{ingredient_id}/recipes", response_model=list[RecipeRead])
 async def get_recipes_by_ingredient(
     ingredient_id: int,
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)]
 ):
     ingredient = await session.get(Ingredient, ingredient_id)
+
     if not ingredient:
         raise HTTPException(status_code=404, detail="Ингредиент не найден")
 
     stmt = (
         select(Recipe)
-        .join(Recipe.recipe_ingredients)
+        .join(RecipeIngredient)
         .where(RecipeIngredient.ingredient_id == ingredient_id)
         .options(
             selectinload(Recipe.cuisine),
             selectinload(Recipe.allergens),
-            selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
+            selectinload(Recipe.recipe_ingredients)
+            .joinedload(RecipeIngredient.ingredient)
         )
+        .order_by(Recipe.id)
     )
 
     result = await session.execute(stmt)
-    recipes = result.scalars().all()
 
-    return recipes
+    return result.scalars().unique().all()

@@ -8,10 +8,9 @@ from models import db_helper, Cuisine
 
 router = APIRouter(
     tags=["Cuisines"],
-    prefix="/cuisines", # Можно добавить это в settings.url, если хочешь
+    prefix="/cuisines",
 )
 
-# Схемы
 class CuisineBase(BaseModel):
     name: str
 
@@ -22,7 +21,6 @@ class CuisineRead(CuisineBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
 
-# Эндпоинты
 @router.get("", response_model=list[CuisineRead])
 async def get_cuisines(
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
@@ -54,7 +52,7 @@ async def get_cuisine(
 @router.patch("/{cuisine_id}", response_model=CuisineRead)
 async def update_cuisine(
     cuisine_id: int,
-    cuisine_update: CuisineCreate, # Используем ту же схему для простоты
+    cuisine_update: CuisineCreate,
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
 ):
     cuisine = await session.get(Cuisine, cuisine_id)

@@ -11,13 +11,12 @@ from .cuisines import CuisineRead
 from .allergens import AllergenRead
 from .ingredients import IngredientRead
 from models.recipe_ingredient import MeasurementEnum
+from .schemas import RecipeRead, RecipeIngredientRead
 
 router = APIRouter(
     tags=["Recipes"],
     prefix=settings.url.recipes,
 )
-
-# --- SCHEMAS ---
 
 class RecipeBase(BaseModel):
     title: str = Field(..., min_length=3, max_length=255)
@@ -31,13 +30,6 @@ class RecipeIngredientCreate(BaseModel):
     quantity: int
     measurement: MeasurementEnum
 
-class RecipeIngredientRead(BaseModel):
-    ingredient_id: int
-    name: str
-    quantity: int
-    measurement: MeasurementEnum
-    
-    model_config = ConfigDict(from_attributes=True)
 
 class RecipeCreate(RecipeBase):
     allergen_ids: list[int] = Field(default_factory=list)
@@ -55,15 +47,6 @@ class RecipeUpdate(BaseModel):
     difficulty: int | None = Field(None, ge=1, le=5)
     cooking_time: int | None = Field(None, gt=0)
 
-class RecipeRead(RecipeBase):
-    id: int
-    cuisine: CuisineRead | None = None
-    allergens: list[AllergenRead] = []
-    ingredients: list[RecipeIngredientRead] = Field(alias="recipe_ingredients")
-    
-    model_config = ConfigDict(from_attributes=True)
-
-# --- ENDPOINTS ---
 
 @router.get("/read-all/", response_model=list[RecipeRead])
 async def get_recipes(
@@ -109,7 +92,6 @@ async def create_recipe(
     session.add(recipe)
     await session.commit()
     
-    # Перезагружаем для ответа со всеми связями
     stmt = (
         select(Recipe)
         .options(
@@ -127,7 +109,6 @@ async def get_recipe(
     recipe_id: int,
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)]
 ):
-    # Используем select вместо session.get для подгрузки связей
     stmt = (
         select(Recipe)
         .options(

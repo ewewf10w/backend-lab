@@ -31,5 +31,4 @@ class RecipeIngredient(Base):
 
     @property
     def name(self) -> str:
-        # Pydantic подтянет это свойство автоматически, если оно есть в RecipeIngredientRead
         return self.ingredient.name if self.ingredient else ""

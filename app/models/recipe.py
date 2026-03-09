@@ -19,13 +19,11 @@ class Recipe(Base):
         back_populates="recipes"
     )
 
-    # Вспомогательная связь (только для чтения)
     ingredients: Mapped[list["Ingredient"]] = relationship(
         secondary="recipe_ingredients",
         viewonly=True
     )
     
-    # Основная рабочая связь для рецептов с граммовками
     recipe_ingredients: Mapped[list["RecipeIngredient"]] = relationship(
         back_populates="recipe",
         cascade="all, delete-orphan"
