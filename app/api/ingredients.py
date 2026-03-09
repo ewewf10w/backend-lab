@@ -3,8 +3,10 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel, ConfigDict
+from sqlalchemy.orm import selectinload, joinedload
 
-from models import db_helper, Ingredient
+from models import db_helper, Ingredient, RecipeIngredient
+from .recipes import RecipeRead
 
 router = APIRouter(
     tags=["Ingredients"],
@@ -20,6 +22,7 @@ class IngredientCreate(IngredientBase):
 class IngredientRead(IngredientBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
+
 
 @router.get("", response_model=list[IngredientRead])
 async def get_ingredients(session: Annotated[AsyncSession, Depends(db_helper.session_getter)]):
@@ -58,3 +61,28 @@ async def delete_ingredient(ingredient_id: int, session: Annotated[AsyncSession,
         raise HTTPException(status_code=404, detail="Ингредиент не найден")
     await session.delete(ingredient)
     await session.commit()
+
+@router.get("/{ingredient_id}/recipes/", response_model=list[RecipeRead])
+async def get_recipes_by_ingredient(
+    ingredient_id: int,
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)]
+):
+    ingredient = await session.get(Ingredient, ingredient_id)
+    if not ingredient:
+        raise HTTPException(status_code=404, detail="Ингредиент не найден")
+
+    stmt = (
+        select(Recipe)
+        .join(Recipe.recipe_ingredients)
+        .where(RecipeIngredient.ingredient_id == ingredient_id)
+        .options(
+            selectinload(Recipe.cuisine),
+            selectinload(Recipe.allergens),
+            selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
+        )
+    )
+
+    result = await session.execute(stmt)
+    recipes = result.scalars().all()
+
+    return recipes

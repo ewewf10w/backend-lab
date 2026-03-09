@@ -3,20 +3,21 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload # Не забудь этот импорт для Шага 3
+from sqlalchemy.orm import selectinload, joinedload
 
 from config import settings
-from models import db_helper, Recipe, Ingredient, Allergen, Cuisine
-
-# Импортируем схемы из других файлов роутеров
+from models import db_helper, Recipe, Ingredient, Allergen, Cuisine, RecipeIngredient
 from .cuisines import CuisineRead
 from .allergens import AllergenRead
 from .ingredients import IngredientRead
+from models.recipe_ingredient import MeasurementEnum
 
 router = APIRouter(
     tags=["Recipes"],
     prefix=settings.url.recipes,
 )
+
+# --- SCHEMAS ---
 
 class RecipeBase(BaseModel):
     title: str = Field(..., min_length=3, max_length=255)
@@ -25,9 +26,28 @@ class RecipeBase(BaseModel):
     cooking_time: int = Field(..., gt=0)
     cuisine_id: int
 
+class RecipeIngredientCreate(BaseModel):
+    ingredient_id: int
+    quantity: int
+    measurement: MeasurementEnum
+
+class RecipeIngredientRead(BaseModel):
+    ingredient_id: int
+    name: str
+    quantity: int
+    measurement: MeasurementEnum
+    
+    model_config = ConfigDict(from_attributes=True)
+
 class RecipeCreate(RecipeBase):
-    allergen_ids: list[int] = []
-    ingredient_ids: list[int] = []
+    allergen_ids: list[int] = Field(default_factory=list)
+    # json_schema_extra заставит Swagger показать структуру объекта в примере
+    ingredients: list[RecipeIngredientCreate] = Field(
+        default_factory=list,
+        json_schema_extra={
+            "example": [{"ingredient_id": 1, "quantity": 100, "measurement": 1}]
+        }
+    )
 
 class RecipeUpdate(BaseModel):
     title: str | None = Field(None, min_length=3, max_length=255)
@@ -37,12 +57,13 @@ class RecipeUpdate(BaseModel):
 
 class RecipeRead(RecipeBase):
     id: int
-
     cuisine: CuisineRead | None = None
     allergens: list[AllergenRead] = []
-    ingredients: list[IngredientRead] = []
+    ingredients: list[RecipeIngredientRead] = Field(alias="recipe_ingredients")
     
     model_config = ConfigDict(from_attributes=True)
+
+# --- ENDPOINTS ---
 
 @router.get("/read-all/", response_model=list[RecipeRead])
 async def get_recipes(
@@ -53,7 +74,7 @@ async def get_recipes(
         .options(
             selectinload(Recipe.cuisine),
             selectinload(Recipe.allergens),
-            selectinload(Recipe.ingredients)
+            selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
         )
         .order_by(Recipe.id)
     )
@@ -65,51 +86,60 @@ async def create_recipe(
     recipe_in: RecipeCreate,
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)]
 ):
-    # 1. Проверяем кухню
     cuisine = await session.get(Cuisine, recipe_in.cuisine_id)
     if not cuisine:
         raise HTTPException(status_code=404, detail="Кухня не найдена")
 
-    # 2. Создаем рецепт
-    recipe_dict = recipe_in.model_dump(exclude={"allergen_ids", "ingredient_ids"})
+    recipe_dict = recipe_in.model_dump(exclude={"allergen_ids", "ingredients"})
     recipe = Recipe(**recipe_dict)
 
-    # 3. Привязываем связи (как и было)
     if recipe_in.allergen_ids:
         stmt = select(Allergen).where(Allergen.id.in_(recipe_in.allergen_ids))
         res = await session.execute(stmt)
         recipe.allergens = list(res.scalars().all())
 
-    if recipe_in.ingredient_ids:
-        stmt = select(Ingredient).where(Ingredient.id.in_(recipe_in.ingredient_ids))
-        res = await session.execute(stmt)
-        recipe.ingredients = list(res.scalars().all())
+    for ing_data in recipe_in.ingredients:
+        new_relation = RecipeIngredient(
+            ingredient_id=ing_data.ingredient_id,
+            quantity=ing_data.quantity,
+            measurement=ing_data.measurement
+        )
+        recipe.recipe_ingredients.append(new_relation)
 
     session.add(recipe)
     await session.commit()
     
-    # --- ВОТ ТУТ ГЛАВНОЕ ИСПРАВЛЕНИЕ ---
-    # Перезапрашиваем рецепт со всеми связями, чтобы Pydantic не упал
+    # Перезагружаем для ответа со всеми связями
     stmt = (
         select(Recipe)
         .options(
             selectinload(Recipe.cuisine),
             selectinload(Recipe.allergens),
-            selectinload(Recipe.ingredients)
+            selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
         )
         .where(Recipe.id == recipe.id)
     )
     result = await session.execute(stmt)
-    recipe_final = result.scalar_one()
-    
-    return recipe_final
+    return result.scalar_one()
 
 @router.get("/read/{recipe_id}/", response_model=RecipeRead)
 async def get_recipe(
     recipe_id: int,
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)]
 ):
-    recipe = await session.get(Recipe, recipe_id)
+    # Используем select вместо session.get для подгрузки связей
+    stmt = (
+        select(Recipe)
+        .options(
+            selectinload(Recipe.cuisine),
+            selectinload(Recipe.allergens),
+            selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
+        )
+        .where(Recipe.id == recipe_id)
+    )
+    result = await session.execute(stmt)
+    recipe = result.scalar_one_or_none()
+    
     if not recipe:
         raise HTTPException(status_code=404, detail="Рецепт не найден")
     return recipe
@@ -120,7 +150,18 @@ async def update_recipe(
     recipe_update: RecipeUpdate,
     session: Annotated[AsyncSession, Depends(db_helper.session_getter)]
 ):
-    recipe = await session.get(Recipe, recipe_id)
+    stmt = (
+        select(Recipe)
+        .options(
+            selectinload(Recipe.cuisine),
+            selectinload(Recipe.allergens),
+            selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
+        )
+        .where(Recipe.id == recipe_id)
+    )
+    result = await session.execute(stmt)
+    recipe = result.scalar_one_or_none()
+    
     if not recipe:
         raise HTTPException(status_code=404, detail="Рецепт не найден")
 

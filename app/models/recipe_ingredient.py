@@ -28,3 +28,8 @@ class RecipeIngredient(Base):
 
     recipe: Mapped["Recipe"] = relationship(back_populates="recipe_ingredients")
     ingredient: Mapped["Ingredient"] = relationship()
+
+    @property
+    def name(self) -> str:
+        # Pydantic подтянет это свойство автоматически, если оно есть в RecipeIngredientRead
+        return self.ingredient.name if self.ingredient else ""

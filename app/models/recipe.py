@@ -19,10 +19,14 @@ class Recipe(Base):
         back_populates="recipes"
     )
 
-    recipe_ingredients: Mapped[list["RecipeIngredient"]] = relationship(
+    # Вспомогательная связь (только для чтения)
+    ingredients: Mapped[list["Ingredient"]] = relationship(
         secondary="recipe_ingredients",
-        back_populates="recipe"
+        viewonly=True
     )
-
-    def __repr__(self):
-        return f"Recipe(id={self.id}, title={self.title})"
+    
+    # Основная рабочая связь для рецептов с граммовками
+    recipe_ingredients: Mapped[list["RecipeIngredient"]] = relationship(
+        back_populates="recipe",
+        cascade="all, delete-orphan"
+    )
