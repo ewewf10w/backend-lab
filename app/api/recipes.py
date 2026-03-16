@@ -33,7 +33,6 @@ class RecipeIngredientCreate(BaseModel):
 
 class RecipeCreate(RecipeBase):
     allergen_ids: list[int] = Field(default_factory=list)
-    # json_schema_extra заставит Swagger показать структуру объекта в примере
     ingredients: list[RecipeIngredientCreate] = Field(
         default_factory=list,
         json_schema_extra={
@@ -55,7 +54,7 @@ async def get_recipes(
     stmt = (
         select(Recipe)
         .options(
-            selectinload(Recipe.cuisine),
+            joinedload(Recipe.cuisine),
             selectinload(Recipe.allergens),
             selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
         )
@@ -95,7 +94,7 @@ async def create_recipe(
     stmt = (
         select(Recipe)
         .options(
-            selectinload(Recipe.cuisine),
+            joinedload(Recipe.cuisine),
             selectinload(Recipe.allergens),
             selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
         )
@@ -112,7 +111,7 @@ async def get_recipe(
     stmt = (
         select(Recipe)
         .options(
-            selectinload(Recipe.cuisine),
+            joinedload(Recipe.cuisine),
             selectinload(Recipe.allergens),
             selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
         )
@@ -134,7 +133,7 @@ async def update_recipe(
     stmt = (
         select(Recipe)
         .options(
-            selectinload(Recipe.cuisine),
+            joinedload(Recipe.cuisine),
             selectinload(Recipe.allergens),
             selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
         )

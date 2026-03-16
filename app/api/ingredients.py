@@ -77,7 +77,7 @@ async def get_recipes_by_ingredient(
         .join(RecipeIngredient)
         .where(RecipeIngredient.ingredient_id == ingredient_id)
         .options(
-            selectinload(Recipe.cuisine),
+            joinedload(Recipe.cuisine),
             selectinload(Recipe.allergens),
             selectinload(Recipe.recipe_ingredients)
             .joinedload(RecipeIngredient.ingredient)

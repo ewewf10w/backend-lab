@@ -24,6 +24,6 @@ class RecipeRead(BaseModel):
     cuisine: CuisineRead | None = None
     allergens: list[AllergenRead] = []
 
-    ingredients: list[RecipeIngredientRead] = Field(alias="recipe_ingredients")
+    ingredients: list[RecipeIngredientRead] = Field(validation_alias="recipe_ingredients")
 
     model_config = ConfigDict(from_attributes=True)
