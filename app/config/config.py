@@ -6,9 +6,9 @@ from pydantic_settings import (
 
 
 class RunConfig(BaseModel):
-    host: str = "0.0.0.0"
+    host: str = "127.0.0.1"
     port: int = 8000
-    reload: bool = False
+    reload: bool = True
 
 
 class DatabaseConfig(BaseModel):
@@ -23,7 +23,6 @@ class UrlPrefix(BaseModel):
     posts: str = "/posts"
     examples: str = "/examples"
     recipes: str = "/recipes"
-
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(

@@ -5,6 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload, joinedload
 
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import apaginate
+from fastapi_filter import FilterDepends
+from .filters import RecipeFilter
+
 from config import settings
 from models import db_helper, Recipe, Ingredient, Allergen, Cuisine, RecipeIngredient
 from .cuisines import CuisineRead
@@ -164,3 +169,15 @@ async def delete_recipe(
     await session.delete(recipe)
     await session.commit()
     return None
+
+@router.get("", response_model=Page[RecipeRead])
+async def get_recipes(
+    recipe_filter: Annotated[RecipeFilter, FilterDepends(RecipeFilter)],
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+):
+    stmt = select(Recipe)
+    
+    stmt = recipe_filter.filter(stmt)
+    stmt = recipe_filter.sort(stmt)
+    
+    return await apaginate(session, stmt)
