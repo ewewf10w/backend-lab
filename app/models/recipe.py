@@ -1,6 +1,10 @@
 from sqlalchemy import String, Text, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .users import User
 
 class Recipe(Base):
     __tablename__ = "recipes"
@@ -10,6 +14,9 @@ class Recipe(Base):
     description: Mapped[str] = mapped_column(Text)
     cooking_time: Mapped[int] = mapped_column(Integer)
     difficulty: Mapped[int] = mapped_column(Integer, default=1)
+
+    author_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
+    author: Mapped["User"] = relationship(back_populates="recipes")
 
     cuisine_id: Mapped[int] = mapped_column(ForeignKey("cuisines.id"))
     cuisine: Mapped["Cuisine"] = relationship(back_populates="recipes")

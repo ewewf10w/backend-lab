@@ -11,12 +11,13 @@ from fastapi_filter import FilterDepends
 from .filters import RecipeFilter
 
 from config import settings
-from models import db_helper, Recipe, Ingredient, Allergen, Cuisine, RecipeIngredient
+from models import db_helper, Recipe, User, Ingredient, Allergen, Cuisine, RecipeIngredient
 from .cuisines import CuisineRead
 from .allergens import AllergenRead
 from .ingredients import IngredientRead
 from models.recipe_ingredient import MeasurementEnum
-from .schemas import RecipeRead, RecipeIngredientRead
+from .schemas import RecipeRead, RecipeIngredientRead, AuthorRead
+from authentication.fastapi_users import current_active_user
 
 router = APIRouter(
     tags=["Recipes"],
@@ -60,6 +61,7 @@ async def get_recipes(
         select(Recipe)
         .options(
             joinedload(Recipe.cuisine),
+            joinedload(Recipe.author),
             selectinload(Recipe.allergens),
             selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
         )
@@ -71,14 +73,15 @@ async def get_recipes(
 @router.post("/create/", response_model=RecipeRead, status_code=status.HTTP_201_CREATED)
 async def create_recipe(
     recipe_in: RecipeCreate,
-    session: Annotated[AsyncSession, Depends(db_helper.session_getter)]
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+    user: User = Depends(current_active_user),
 ):
     cuisine = await session.get(Cuisine, recipe_in.cuisine_id)
     if not cuisine:
         raise HTTPException(status_code=404, detail="Кухня не найдена")
 
     recipe_dict = recipe_in.model_dump(exclude={"allergen_ids", "ingredients"})
-    recipe = Recipe(**recipe_dict)
+    recipe = Recipe(**recipe_dict, author_id=user.id)
 
     if recipe_in.allergen_ids:
         stmt = select(Allergen).where(Allergen.id.in_(recipe_in.allergen_ids))
@@ -100,6 +103,7 @@ async def create_recipe(
         select(Recipe)
         .options(
             joinedload(Recipe.cuisine),
+            joinedload(Recipe.author),
             selectinload(Recipe.allergens),
             selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
         )
@@ -133,12 +137,14 @@ async def get_recipe(
 async def update_recipe(
     recipe_id: int,
     recipe_update: RecipeUpdate,
-    session: Annotated[AsyncSession, Depends(db_helper.session_getter)]
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+    user: User = Depends(current_active_user),
 ):
     stmt = (
         select(Recipe)
         .options(
             joinedload(Recipe.cuisine),
+            joinedload(Recipe.author),
             selectinload(Recipe.allergens),
             selectinload(Recipe.recipe_ingredients).joinedload(RecipeIngredient.ingredient)
         )
@@ -149,6 +155,12 @@ async def update_recipe(
     
     if not recipe:
         raise HTTPException(status_code=404, detail="Рецепт не найден")
+    
+    if recipe.author_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Вы не можете редактировать чужой рецепт"
+        )
 
     update_data = recipe_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
@@ -160,11 +172,18 @@ async def update_recipe(
 @router.delete("/delete/{recipe_id}/", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_recipe(
     recipe_id: int,
-    session: Annotated[AsyncSession, Depends(db_helper.session_getter)]
+    session: Annotated[AsyncSession, Depends(db_helper.session_getter)],
+    user: User = Depends(current_active_user),
 ):
     recipe = await session.get(Recipe, recipe_id)
     if not recipe:
         raise HTTPException(status_code=404, detail="Рецепт не найден")
+    
+    if recipe.author_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Вы не можете удалить чужой рецепт"
+        )
     
     await session.delete(recipe)
     await session.commit()
