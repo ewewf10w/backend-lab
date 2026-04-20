@@ -10,14 +10,14 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from fastapi_filter import FilterDepends
 from .filters import RecipeFilter
 
-from config import settings
-from models import db_helper, Recipe, User, Ingredient, Allergen, Cuisine, RecipeIngredient
+from app.config import settings
+from app.models import db_helper, Recipe, User, Ingredient, Allergen, Cuisine, RecipeIngredient
 from .cuisines import CuisineRead
 from .allergens import AllergenRead
 from .ingredients import IngredientRead
-from models.recipe_ingredient import MeasurementEnum
+from app.models.recipe_ingredient import MeasurementEnum
 from .schemas import RecipeRead, RecipeIngredientRead, AuthorRead
-from authentication.fastapi_users import current_active_user
+from app.authentication.fastapi_users import current_active_user
 
 router = APIRouter(
     tags=["Recipes"],

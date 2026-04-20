@@ -5,7 +5,7 @@ from sqlalchemy import select
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import selectinload, joinedload, attributes
 
-from models import db_helper, Ingredient, RecipeIngredient, Recipe
+from app.models import db_helper, Ingredient, RecipeIngredient, Recipe
 from .schemas import RecipeRead
 
 router = APIRouter(

@@ -7,7 +7,7 @@ from fastapi_users.authentication.strategy.db import (
 )
 from fastapi_users.authentication import JWTStrategy
 
-from config import settings
+from app.config import settings
 
 from .helper.access_tokens import get_access_tokens_db
 

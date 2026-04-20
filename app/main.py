@@ -1,10 +1,10 @@
 import uvicorn
 from fastapi import FastAPI
-from config import settings
+from app.config import settings
 from contextlib import asynccontextmanager
 
-from models import db_helper, Base
-from api import router as api_router
+from app.models import db_helper, Base
+from app.api import router as api_router
 from fastapi.staticfiles import StaticFiles
 
 from fastapi_pagination import add_pagination

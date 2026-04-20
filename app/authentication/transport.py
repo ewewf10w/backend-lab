@@ -1,6 +1,6 @@
 from fastapi_users.authentication import CookieTransport, BearerTransport
 
-from config import settings
+from app.config import settings
 
 
 bearer_transport = BearerTransport(

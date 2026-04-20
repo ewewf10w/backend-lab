@@ -1,8 +1,8 @@
 from typing import Optional, List, Any
 from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import Field, field_validator
-from models.recipe import Recipe
-from models.recipe_ingredient import RecipeIngredient
+from app.models.recipe import Recipe
+from app.models.recipe_ingredient import RecipeIngredient
 
 class RecipeFilter(Filter):
     title__like: Optional[str] = None

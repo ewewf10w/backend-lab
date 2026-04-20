@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel, ConfigDict
 
-from models import db_helper, Cuisine
+from app.models import db_helper, Cuisine
 
 router = APIRouter(
     tags=["Cuisines"],

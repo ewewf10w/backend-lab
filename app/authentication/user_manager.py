@@ -6,8 +6,8 @@ from fastapi_users import (
     IntegerIDMixin,
 )
 
-from config import settings
-from models import User
+from app.config import settings
+from app.models import User
 
 if TYPE_CHECKING:
     from fastapi import Request

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
-from models.recipe_ingredient import MeasurementEnum
+from app.models.recipe_ingredient import MeasurementEnum
 from .cuisines import CuisineRead
 from .allergens import AllergenRead
 from typing import Optional

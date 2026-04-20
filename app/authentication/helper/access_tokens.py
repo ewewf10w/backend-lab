@@ -9,7 +9,7 @@ from fastapi_users_db_sqlalchemy.access_token import (
     SQLAlchemyAccessTokenDatabase,
 )
 
-from models import (
+from app.models import (
     db_helper,
     AccessToken,
 )

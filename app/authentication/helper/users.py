@@ -6,7 +6,7 @@ from fastapi_users.db import SQLAlchemyUserDatabase
 
 from fastapi import Depends
 
-from models import (
+from app.models import (
     db_helper,
     User,
 )

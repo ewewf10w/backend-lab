@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from config import settings
+from app.config import settings
 
 from .recipes import router as recipes_router
 from .cuisines import router as cuisines_router
