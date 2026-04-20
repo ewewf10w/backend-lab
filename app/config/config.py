@@ -46,6 +46,9 @@ class AccessToken(BaseModel):
     reset_password_token_secret: str = ""
     verification_token_secret: str = ""
 
+class ApiConfig(BaseModel):
+    router_key: str
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=(".env.template", ".env"),
@@ -58,6 +61,7 @@ class Settings(BaseSettings):
     auth: AuthConfig = AuthConfig()
     db: DatabaseConfig = DatabaseConfig(url="sqlite+aiosqlite:///./recipes_v2.sqlite")
     access_token: AccessToken = AccessToken()
+    api: ApiConfig
 
 
 settings = Settings()
