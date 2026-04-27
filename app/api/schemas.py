@@ -14,10 +14,10 @@ class AuthorRead(BaseModel):
 class RecipeIngredientRead(BaseModel):
     ingredient_id: int
     name: str
-    quantity: int
+    quantity: float
     measurement: MeasurementEnum
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
 
 class RecipeRead(BaseModel):
@@ -36,9 +36,13 @@ class RecipeRead(BaseModel):
 
 
 class GeneratedIngredient(BaseModel):
+    model_config = ConfigDict(use_enum_values=True)
     name: str = Field(..., description="Название ингредиента на русском языке")
-    quantity: int
-    measurement: MeasurementEnum
+    quantity: float = Field(..., description="Количество (целое число), не может быть равно 0")
+    measurement: MeasurementEnum = Field(
+        ..., 
+        description="Единица измерения. Используй ТОЛЬКО: GRAMS, PIECES или MILLILITERS"
+    )
 
 class GeneratedRecipe(BaseModel):
     title: str = Field(..., description="Название рецепта на русском языке")
