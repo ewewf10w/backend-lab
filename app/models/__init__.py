@@ -1,7 +1,6 @@
 __all__ = (
     "db_helper",
     "Base",
-    "Post",
     "Recipe",
     "Cuisine",
     "Allergen",

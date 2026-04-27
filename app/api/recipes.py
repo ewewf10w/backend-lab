@@ -18,6 +18,8 @@ from .ingredients import IngredientRead
 from app.models.recipe_ingredient import MeasurementEnum
 from .schemas import RecipeRead, RecipeIngredientRead, AuthorRead
 from app.authentication.fastapi_users import current_active_user
+from app.task_queue import broker
+from app.tasks.recipe_tasks import generate_recipe_task
 
 router = APIRouter(
     tags=["Recipes"],
@@ -200,3 +202,17 @@ async def get_recipes(
     stmt = recipe_filter.sort(stmt)
     
     return await apaginate(session, stmt)
+
+class GenerateRequest(BaseModel):
+    prompt: str
+
+@router.post("/generate")
+async def request_recipe_generation(
+    request_data: GenerateRequest,
+    user: User = Depends(current_active_user),
+):
+    await generate_recipe_task.kiq(
+        prompt=request_data.prompt,
+        user_id=user.id
+    )
+    return {"status": "Генерация началась"}
